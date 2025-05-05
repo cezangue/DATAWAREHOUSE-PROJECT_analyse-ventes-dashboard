@@ -149,45 +149,10 @@ def add_bg_and_styling():
 def load_data():
     # Vous devez remplacer ceci par votre propre méthode de chargement de données
     # Par exemple:
-    # merged_df = pd.read_csv('votre_fichier.csv')
+    merged_df = pd.read_csv('votre_fichier.csv')
     
-    # Pour l'exemple, je crée des données fictives
-    import numpy as np
     
-    # Créer des données factices
-    countries = ['France', 'Germany', 'UK', 'Spain', 'Italy']
-    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    customer_ids = [f'CUST{i:03d}' for i in range(1, 51)]
-    product_names = [f'Produit {chr(65+i)}' for i in range(20)]
-    
-    # Créer un DataFrame avec des données aléatoires
-    np.random.seed(42)  # Pour reproduire les résultats
-    
-    data = []
-    for _ in range(1000):  # 1000 ventes
-        country = np.random.choice(countries)
-        month = np.random.choice(months)
-        customer_id = np.random.choice(customer_ids)
-        product = np.random.choice(product_names)
-        quantity = np.random.randint(1, 10)
-        amount = quantity * np.random.randint(10, 100)
-        
-        data.append({
-            'Country': country,
-            'Month': month,
-            'CustomerID': customer_id,
-            'ProductName': product,
-            'QuantiteVendue': quantity,
-            'MontantVentes': amount
-        })
-    
-    df = pd.DataFrame(data)
-    
-    # Créer un ordre personnalisé pour les mois
-    month_order = {month: i for i, month in enumerate(months)}
-    df['MonthOrder'] = df['Month'].map(month_order)
-    
-    return df
+    return merged_df
 
 # Appliquer les styles
 add_bg_and_styling()
