@@ -147,23 +147,27 @@ def add_bg_and_styling():
 
 # Fonction pour charger les données
 @st.cache_data
-def load_data():
+def load_data(uploaded_file=None):
     try:
-        file_path = "merged_data.csv"
-        if not os.path.exists(file_path):
-            st.error(f"Le fichier {file_path} n'a pas été trouvé.")
+        if uploaded_file is None:
+            if 'data' in st.session_state and st.session_state.data is not None:
+                return st.session_state.data
+            st.error("Aucun fichier de données n'a été uploadé.")
             st.info("Veuillez télécharger votre fichier dans la section 'Browse Files'.")
             return pd.DataFrame()
         
-        df = pd.read_csv(file_path)
-        st.success(f"Données chargées avec succès depuis {file_path}")
+        # Charger le fichier uploadé
+        if uploaded_file.name.endswith('.csv'):
+            df = pd.read_csv(uploaded_file)
+        else:
+            df = pd.read_excel(uploaded_file)
         
         # Vérification des colonnes nécessaires
         required_columns = ['Country', 'Month', 'CustomerID', 'ProductName', 'QuantiteVendue', 'MontantVentes']
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             st.error(f"Les colonnes suivantes sont manquantes dans votre fichier : {', '.join(missing_columns)}")
-            st.error("Veuillez télécharger un fichier avec les colonnes requises.")
+            st.error("Veuillez uploader un fichier avec les colonnes requises.")
             return pd.DataFrame()
         
         # Création de MonthOrder si absent
@@ -178,6 +182,7 @@ def load_data():
                 custom_order = {month: i for i, month in enumerate(unique_months)}
                 df['MonthOrder'] = df['Month'].map(custom_order)
         
+        st.success(f"Données chargées avec succès depuis {uploaded_file.name}")
         return df
     except Exception as e:
         st.error(f"Erreur lors du chargement des données : {e}")
@@ -238,11 +243,10 @@ def page_home():
     * **Dashboard**: Tableau de bord visuel avec graphiques interactifs
     """)
     
-    file_path = "merged_data.csv"
-    if os.path.exists(file_path):
-        st.success(f"Base de données détectée : {file_path}")
+    if 'data' in st.session_state and st.session_state.data is not None:
+        st.success("Données chargées. Vous pouvez accéder aux analyses.")
     else:
-        st.warning("Aucune base de données détectée. Veuillez télécharger votre fichier dans la section 'Browse Files'.")
+        st.warning("Aucune donnée chargée. Veuillez uploader un fichier dans 'Browse Files'.")
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -257,23 +261,20 @@ def page_browse_files():
         st.write(f"Type du fichier : {uploaded_file.type}")
         st.write(f"Taille du fichier : {uploaded_file.size} bytes")
         
-        if st.checkbox("Aperçu du fichier"):
-            try:
-                df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
-                st.write("Aperçu des données :")
-                st.dataframe(df.head())
-                st.write("Statistiques des données :")
-                st.write(df.describe())
-                st.write("Colonnes disponibles :")
-                st.write(", ".join(df.columns.tolist()))
-            except Exception as e:
-                st.error(f"Erreur lors de la lecture du fichier : {e}")
-        
-        if st.button("Utiliser ce fichier comme source de données"):
-            if save_uploaded_file(uploaded_file):
-                st.success(f"Fichier {uploaded_file.name} sauvegardé comme source de données.")
-                st.session_state.data = None  # Réinitialiser le cache
-                st.rerun()
+        df = load_data(uploaded_file)
+        if not df.empty:
+            st.session_state.data = df
+            st.write("Aperçu des données :")
+            st.dataframe(df.head())
+            st.write("Statistiques des données :")
+            st.write(df.describe())
+            st.write("Colonnes disponibles :")
+            st.write(", ".join(df.columns.tolist()))
+            
+            if st.button("Utiliser ce fichier comme source de données"):
+                if save_uploaded_file(uploaded_file):
+                    st.success(f"Fichier {uploaded_file.name} sauvegardé comme source de données.")
+                    st.rerun()
     
     st.markdown("Cette section vous permet de parcourir et de télécharger vos fichiers de données pour analyse.")
     if st.button("Retour à l'accueil"):
@@ -310,17 +311,14 @@ def page_manage_data():
                         st.error(f"Erreur lors de la lecture du fichier : {e}")
             with col3:
                 if st.button(f"Utiliser", key=f"use_{file}"):
-                    if file != "merged_data.csv":
-                        try:
-                            df = pd.read_csv(file) if file.endswith('.csv') else pd.read_excel(file)
-                            df.to_csv("merged_data.csv", index=False)
-                            st.success(f"Le fichier {file} est maintenant utilisé comme source de données principale.")
-                            st.session_state.data = None
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Erreur lors de la définition du fichier comme source principale : {e}")
-                    else:
-                        st.info("Ce fichier est déjà la source de données principale.")
+                    try:
+                        df = pd.read_csv(file) if file.endswith('.csv') else pd.read_excel(file)
+                        st.session_state.data = df
+                        df.to_csv("merged_data.csv", index=False)
+                        st.success(f"Le fichier {file} est maintenant utilisé comme source de données principale.")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Erreur lors de la définition du fichier comme source principale : {e}")
     else:
         st.info("Aucun fichier de données disponible. Veuillez télécharger un fichier dans la section 'Browse Files'.")
     
@@ -372,15 +370,12 @@ def page_analysis_report():
     st.markdown('<div class="main-header"><h1>Analysis Report</h1></div>', unsafe_allow_html=True)
     
     if 'data' not in st.session_state or st.session_state.data is None:
-        st.session_state.data = load_data()
-    
-    df = st.session_state.data
-    if df.empty:
-        st.error("Aucune donnée disponible. Veuillez importer un fichier de données valide.")
+        st.error("Aucune donnée disponible. Veuillez importer un fichier de données valide dans 'Browse Files'.")
         if st.button("Retour à l'accueil"):
             st.session_state.page = 'home'
         return
     
+    df = st.session_state.data
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.write("## Rapport d'analyse des ventes")
     
@@ -414,15 +409,12 @@ def page_interactive_report():
     st.markdown('<div class="main-header"><h1>Interactive Report</h1></div>', unsafe_allow_html=True)
     
     if 'data' not in st.session_state or st.session_state.data is None:
-        st.session_state.data = load_data()
-    
-    df = st.session_state.data
-    if df.empty:
-        st.error("Aucune donnée disponible. Veuillez importer un fichier de données valide.")
+        st.error("Aucune donnée disponible. Veuillez importer un fichier de données valide dans 'Browse Files'.")
         if st.button("Retour à l'accueil"):
             st.session_state.page = 'home'
         return
     
+    df = st.session_state.data
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.write("## Filtres")
     
@@ -491,15 +483,12 @@ def page_dashboard():
     st.markdown('<div class="main-header"><h1>Dashboard</h1></div>', unsafe_allow_html=True)
     
     if 'data' not in st.session_state or st.session_state.data is None:
-        st.session_state.data = load_data()
-    
-    df = st.session_state.data
-    if df.empty:
-        st.error("Aucune donnée disponible. Veuillez importer un fichier de données valide.")
+        st.error("Aucune donnée disponible. Veuillez importer un fichier de données valide dans 'Browse Files'.")
         if st.button("Retour à l'accueil"):
             st.session_state.page = 'home'
         return
     
+    df = st.session_state.data
     st.sidebar.header("Filtres")
     countries = sorted(df['Country'].unique())
     selected_countries = st.sidebar.multiselect("Sélectionner des pays", options=countries, default=countries)
@@ -582,9 +571,19 @@ def page_dashboard():
         for i, country in enumerate(countries_list):
             current_col = col1 if i < half else col2
             country_data = sales_by_month_country[sales_by_month_country['Country'] == country]
+            if country_data.empty or country not in country_totals:
+                continue
             country_data['Percentage'] = country_data['MontantVentes'] / country_totals[country] * 100
-            country_data['Labels'] = country_data['Month'] + ' (' + country_data['Percentage'].round(1).astype(str) + '%)'
-            fig = go.Figure(data=[go.Pie(labels=country_data['Labels'], values=country_data['MontantVentes'], hole=0.3, sort=False)])
+            # Use apply to create Labels column safely
+            country_data['Labels'] = country_data.apply(
+                lambda row: f"{row['Month']} ({row['Percentage']:.1f}%)", axis=1
+            )
+            fig = go.Figure(data=[go.Pie(
+                labels=country_data['Labels'],
+                values=country_data['MontantVentes'],
+                hole=0.3,
+                sort=False
+            )])
             fig.update_layout(title=f"Ventes pour {country}", height=400)
             current_col.plotly_chart(fig, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
