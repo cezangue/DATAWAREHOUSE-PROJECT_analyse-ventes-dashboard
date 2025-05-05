@@ -3,8 +3,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import base64
-from pathlib import Path
 import os
+from pathlib import Path
 
 # Configuration de la page Streamlit
 st.set_page_config(
@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Fonction pour ajouter image de fond et CSS personnalisé
+# Fonction pour ajouter les styles CSS
 def add_bg_and_styling():
     st.markdown("""
     <style>
@@ -148,52 +148,49 @@ def add_bg_and_styling():
 # Fonction pour charger les données
 @st.cache_data
 def load_data():
-    # Essayer de charger le fichier merged_data.csv
-    file_path = "merged_data.csv"
-    if not os.path.exists(file_path):
-        st.error(f"Le fichier {file_path} n'a pas été trouvé. Veuillez télécharger vos données dans la section 'Browse Files'.")
-        return pd.DataFrame()
-    
     try:
+        file_path = "merged_data.csv"
+        if not os.path.exists(file_path):
+            st.error(f"Le fichier {file_path} n'a pas été trouvé.")
+            st.info("Veuillez télécharger votre fichier dans la section 'Browse Files'.")
+            return pd.DataFrame()
+        
         df = pd.read_csv(file_path)
         st.success(f"Données chargées avec succès depuis {file_path}")
         
         # Vérification des colonnes nécessaires
         required_columns = ['Country', 'Month', 'CustomerID', 'ProductName', 'QuantiteVendue', 'MontantVentes']
         missing_columns = [col for col in required_columns if col not in df.columns]
-        
         if missing_columns:
-            st.error(f"Erreur: Les colonnes suivantes sont manquantes dans votre fichier: {', '.join(missing_columns)}")
+            st.error(f"Les colonnes suivantes sont manquantes dans votre fichier : {', '.join(missing_columns)}")
+            st.error("Veuillez télécharger un fichier avec les colonnes requises.")
             return pd.DataFrame()
         
-        # Si 'MonthOrder' n'existe pas, le créer
+        # Création de MonthOrder si absent
         if 'MonthOrder' not in df.columns:
             months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
             month_order = {month: i for i, month in enumerate(months)}
-            
-            # Vérifier si les mois dans le df correspondent au format attendu
             if set(df['Month'].unique()).issubset(set(months)):
                 df['MonthOrder'] = df['Month'].map(month_order)
             else:
                 st.warning("Format des mois non reconnu. Ordre chronologique peut être incorrect.")
-                # Assigner un ordre arbitraire basé sur l'ordre d'apparition
                 unique_months = df['Month'].unique()
                 custom_order = {month: i for i, month in enumerate(unique_months)}
                 df['MonthOrder'] = df['Month'].map(custom_order)
         
         return df
     except Exception as e:
-        st.error(f"Erreur lors du chargement des données: {e}")
+        st.error(f"Erreur lors du chargement des données : {e}")
         return pd.DataFrame()
 
-# Fonction pour télécharger un fichier et le sauvegarder
+# Fonction pour sauvegarder un fichier uploadé
 def save_uploaded_file(uploaded_file):
     try:
-        with open(uploaded_file.name, "wb") as f:
+        with open("merged_data.csv", "wb") as f:
             f.write(uploaded_file.getbuffer())
         return True
     except Exception as e:
-        st.error(f"Erreur lors de la sauvegarde du fichier: {e}")
+        st.error(f"Erreur lors de la sauvegarde du fichier : {e}")
         return False
 
 # Appliquer les styles
@@ -203,32 +200,30 @@ add_bg_and_styling()
 def page_home():
     st.markdown('<div class="main-header"><h1>Système d\'Analyse des Ventes</h1></div>', unsafe_allow_html=True)
     
-    # Disposition en 2 colonnes pour les boutons
     col1, col2 = st.columns(2)
-    
     with col1:
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        if st.button('Browse Files', key='btn_browse', help="Parcourir les fichiers de données", use_container_width=True):
-            st.session_state.page = 'browse_files'
-        if st.button('Create New', key='btn_create', help="Créer une nouvelle analyse", use_container_width=True):
-            st.session_state.page = 'create_new'
-        if st.button('Manage Data Sources', key='btn_manage', help="Gérer les sources de données", use_container_width=True):
-            st.session_state.page = 'manage_data'
-        if st.button('Documentation', key='btn_docs', help="Consulter la documentation", use_container_width=True):
-            st.session_state.page = 'documentation'
+        for label, page, help_text in [
+            ('Browse Files', 'browse_files', 'Parcourir les fichiers de données'),
+            ('Create New', 'create_new', 'Créer une nouvelle analyse'),
+            ('Manage Data Sources', 'manage_data', 'Gérer les sources de données'),
+            ('Documentation', 'documentation', 'Consulter la documentation')
+        ]:
+            if st.button(label, key=f'btn_{page}', help=help_text, use_container_width=True):
+                st.session_state.page = page
         st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
         st.markdown('<div class="card">', unsafe_allow_html=True)
-        if st.button('Analysis Report', key='btn_analysis', help="Voir le rapport d'analyse", use_container_width=True):
-            st.session_state.page = 'analysis_report'
-        if st.button('Interactive Report', key='btn_interactive', help="Consulter le rapport interactif", use_container_width=True):
-            st.session_state.page = 'interactive_report'
-        if st.button('Dashboard', key='btn_dashboard', help="Afficher le tableau de bord", use_container_width=True):
-            st.session_state.page = 'dashboard'
+        for label, page, help_text in [
+            ('Analysis Report', 'analysis_report', 'Voir le rapport d\'analyse'),
+            ('Interactive Report', 'interactive_report', 'Consulter le rapport interactif'),
+            ('Dashboard', 'dashboard', 'Afficher le tableau de bord')
+        ]:
+            if st.button(label, key=f'btn_{page}', help=help_text, use_container_width=True):
+                st.session_state.page = page
         st.markdown('</div>', unsafe_allow_html=True)
     
-    # Vidéo ou image introductive
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown("""
     ## À propos du Système d'Analyse des Ventes
@@ -241,13 +236,11 @@ def page_home():
     * **Analysis Report**: Rapports détaillés sur les ventes par pays et par mois
     * **Interactive Report**: Rapport interactif permettant de filtrer et d'explorer les données
     * **Dashboard**: Tableau de bord visuel avec graphiques interactifs
-    
     """)
     
-    # Afficher le statut des données
     file_path = "merged_data.csv"
     if os.path.exists(file_path):
-        st.success(f"Base de données détectée: {file_path}")
+        st.success(f"Base de données détectée : {file_path}")
     else:
         st.warning("Aucune base de données détectée. Veuillez télécharger votre fichier dans la section 'Browse Files'.")
     
@@ -260,45 +253,27 @@ def page_browse_files():
     uploaded_file = st.file_uploader("Téléchargez votre fichier de données", type=["csv", "xlsx", "xls"])
     
     if uploaded_file is not None:
-        # Afficher les informations du fichier
-        st.write(f"Nom du fichier: {uploaded_file.name}")
-        st.write(f"Type du fichier: {uploaded_file.type}")
-        st.write(f"Taille du fichier: {uploaded_file.size} bytes")
+        st.write(f"Nom du fichier : {uploaded_file.name}")
+        st.write(f"Type du fichier : {uploaded_file.type}")
+        st.write(f"Taille du fichier : {uploaded_file.size} bytes")
         
-        # Option pour visualiser un aperçu des données
         if st.checkbox("Aperçu du fichier"):
             try:
-                if uploaded_file.name.endswith('.csv'):
-                    df = pd.read_csv(uploaded_file)
-                else:
-                    df = pd.read_excel(uploaded_file)
-                
-                st.write("Aperçu des données:")
+                df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
+                st.write("Aperçu des données :")
                 st.dataframe(df.head())
-                
-                # Afficher les statistiques des données
-                st.write("Statistiques des données:")
+                st.write("Statistiques des données :")
                 st.write(df.describe())
-                
-                # Afficher les colonnes
-                st.write("Colonnes disponibles:")
+                st.write("Colonnes disponibles :")
                 st.write(", ".join(df.columns.tolist()))
             except Exception as e:
-                st.error(f"Erreur lors de la lecture du fichier: {e}")
+                st.error(f"Erreur lors de la lecture du fichier : {e}")
         
-        # Option pour sauvegarder le fichier
         if st.button("Utiliser ce fichier comme source de données"):
             if save_uploaded_file(uploaded_file):
-                st.success(f"Fichier {uploaded_file.name} sauvegardé avec succès! Vous pouvez maintenant utiliser ces données dans les rapports.")
-                # Si le fichier est sauvegardé avec un nom différent de merged_data.csv, le renommer
-                if uploaded_file.name != "merged_data.csv":
-                    try:
-                        os.rename(uploaded_file.name, "merged_data.csv")
-                        st.success("Fichier renommé en 'merged_data.csv' pour être utilisé par l'application.")
-                    except Exception as e:
-                        st.error(f"Erreur lors du renommage du fichier: {e}")
-            else:
-                st.error("Échec de sauvegarde du fichier.")
+                st.success(f"Fichier {uploaded_file.name} sauvegardé comme source de données.")
+                st.session_state.data = None  # Réinitialiser le cache
+                st.rerun()
     
     st.markdown("Cette section vous permet de parcourir et de télécharger vos fichiers de données pour analyse.")
     if st.button("Retour à l'accueil"):
@@ -317,69 +292,47 @@ def page_manage_data():
     st.markdown('<div class="main-header"><h1>Manage Data Sources</h1></div>', unsafe_allow_html=True)
     st.markdown('<div class="card">', unsafe_allow_html=True)
     
-    # Afficher les fichiers disponibles
     st.subheader("Fichiers de données disponibles")
-    
     files = [f for f in os.listdir('.') if f.endswith(('.csv', '.xlsx', '.xls'))]
     if files:
         for file in files:
             col1, col2, col3 = st.columns([3, 1, 1])
-            
             with col1:
                 st.write(f"📄 {file}")
-            
             with col2:
                 if st.button(f"Aperçu", key=f"preview_{file}"):
                     try:
-                        if file.endswith('.csv'):
-                            df = pd.read_csv(file)
-                        else:
-                            df = pd.read_excel(file)
-                        
+                        df = pd.read_csv(file) if file.endswith('.csv') else pd.read_excel(file)
                         st.session_state.preview_file = file
                         st.session_state.preview_df = df
-                        st.experimental_rerun()
+                        st.rerun()
                     except Exception as e:
-                        st.error(f"Erreur lors de la lecture du fichier: {e}")
-            
+                        st.error(f"Erreur lors de la lecture du fichier : {e}")
             with col3:
                 if st.button(f"Utiliser", key=f"use_{file}"):
                     if file != "merged_data.csv":
                         try:
-                            # Si merged_data.csv existe déjà, le supprimer
-                            if os.path.exists("merged_data.csv"):
-                                os.remove("merged_data.csv")
-                            
-                            # Copier le fichier sélectionné en merged_data.csv
-                            if file.endswith('.csv'):
-                                df = pd.read_csv(file)
-                            else:
-                                df = pd.read_excel(file)
-                            
+                            df = pd.read_csv(file) if file.endswith('.csv') else pd.read_excel(file)
                             df.to_csv("merged_data.csv", index=False)
                             st.success(f"Le fichier {file} est maintenant utilisé comme source de données principale.")
-                            st.experimental_rerun()
+                            st.session_state.data = None
+                            st.rerun()
                         except Exception as e:
-                            st.error(f"Erreur lors de la définition du fichier comme source principale: {e}")
+                            st.error(f"Erreur lors de la définition du fichier comme source principale : {e}")
                     else:
                         st.info("Ce fichier est déjà la source de données principale.")
     else:
         st.info("Aucun fichier de données disponible. Veuillez télécharger un fichier dans la section 'Browse Files'.")
     
-    # Afficher l'aperçu du fichier si disponible
-    if hasattr(st.session_state, 'preview_file') and hasattr(st.session_state, 'preview_df'):
+    if 'preview_file' in st.session_state and 'preview_df' in st.session_state:
         st.subheader(f"Aperçu de {st.session_state.preview_file}")
         st.dataframe(st.session_state.preview_df.head())
-        
-        # Afficher des informations supplémentaires
-        st.write(f"Nombre total de lignes: {len(st.session_state.preview_df)}")
-        st.write(f"Colonnes disponibles: {', '.join(st.session_state.preview_df.columns.tolist())}")
-        
-        # Option pour effacer l'aperçu
+        st.write(f"Nombre total de lignes : {len(st.session_state.preview_df)}")
+        st.write(f"Colonnes disponibles : {', '.join(st.session_state.preview_df.columns.tolist())}")
         if st.button("Fermer l'aperçu"):
             del st.session_state.preview_file
             del st.session_state.preview_df
-            st.experimental_rerun()
+            st.rerun()
     
     st.markdown("Cette section vous permet de gérer vos sources de données pour les analyses.")
     if st.button("Retour à l'accueil"):
@@ -393,11 +346,9 @@ def page_documentation():
     ## Documentation du Système d'Analyse des Ventes
     
     ### Introduction
-    
     Ce système vous permet d'analyser les données de ventes de votre entreprise par pays, par mois, par client et par produit.
     
     ### Comment utiliser le système
-    
     1. **Browse Files**: Importez vos fichiers CSV ou Excel contenant vos données de ventes
     2. **Create New**: Créez de nouvelles analyses personnalisées
     3. **Analysis Report**: Consultez des rapports prédéfinis sur vos ventes
@@ -405,9 +356,7 @@ def page_documentation():
     5. **Dashboard**: Visualisez vos données à l'aide de graphiques interactifs
     
     ### Structure des données
-    
     Les données doivent contenir les colonnes suivantes:
-    
     - Country: Pays où la vente a été réalisée
     - Month: Mois de la vente
     - CustomerID: Identifiant du client
@@ -421,49 +370,42 @@ def page_documentation():
 
 def page_analysis_report():
     st.markdown('<div class="main-header"><h1>Analysis Report</h1></div>', unsafe_allow_html=True)
-    merged_df = load_data()
     
-    if merged_df.empty:
-        st.warning("Aucune donnée disponible. Veuillez charger un fichier de données valide.")
+    if 'data' not in st.session_state or st.session_state.data is None:
+        st.session_state.data = load_data()
+    
+    df = st.session_state.data
+    if df.empty:
+        st.error("Aucune donnée disponible. Veuillez importer un fichier de données valide.")
+        if st.button("Retour à l'accueil"):
+            st.session_state.page = 'home'
         return
     
-    # Créer un rapport d'analyse
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.write("## Rapport d'analyse des ventes")
     
-    # Statistiques globales
-    total_sales = merged_df['MontantVentes'].sum()
-    avg_sales = merged_df['MontantVentes'].mean()
-    total_quantity = merged_df['QuantiteVendue'].sum()
+    total_sales = df['MontantVentes'].sum()
+    avg_sales = df['MontantVentes'].mean()
+    total_quantity = df['QuantiteVendue'].sum()
     
     col1, col2, col3 = st.columns(3)
     col1.metric("Ventes Totales", f"{total_sales:,.2f} €")
     col2.metric("Vente Moyenne", f"{avg_sales:.2f} €")
     col3.metric("Quantité Totale", f"{total_quantity}")
     
-    # Meilleurs pays
     st.write("### Top des pays par ventes")
-    top_countries = merged_df.groupby('Country')['MontantVentes'].sum().sort_values(ascending=False).reset_index()
+    top_countries = df.groupby('Country')['MontantVentes'].sum().sort_values(ascending=False).reset_index()
     st.dataframe(top_countries, use_container_width=True)
     
-    # Évolution mensuelle
     st.write("### Évolution mensuelle des ventes")
-    monthly_sales = merged_df.groupby(['Month', 'MonthOrder'])['MontantVentes'].sum().reset_index()
-    monthly_sales = monthly_sales.sort_values('MonthOrder')
+    monthly_sales = df.groupby(['Month', 'MonthOrder'])['MontantVentes'].sum().reset_index().sort_values('MonthOrder')
     
     fig = px.line(monthly_sales, x='Month', y='MontantVentes',
                  labels={'MontantVentes': 'Ventes Totales', 'Month': 'Mois'},
                  markers=True)
-    
-    fig.update_layout(
-        xaxis_title="Mois", 
-        yaxis_title="Ventes Totales",
-        height=500
-    )
-    
+    fig.update_layout(xaxis_title="Mois", yaxis_title="Ventes Totales", height=500)
     st.plotly_chart(fig, use_container_width=True)
     
-    # Bouton de retour
     if st.button("Retour à l'accueil"):
         st.session_state.page = 'home'
     st.markdown('</div>', unsafe_allow_html=True)
@@ -471,96 +413,76 @@ def page_analysis_report():
 def page_interactive_report():
     st.markdown('<div class="main-header"><h1>Interactive Report</h1></div>', unsafe_allow_html=True)
     
-    # Charger les données
-    merged_df = load_data()
+    if 'data' not in st.session_state or st.session_state.data is None:
+        st.session_state.data = load_data()
     
-    if merged_df.empty:
-        st.warning("Aucune donnée disponible. Veuillez charger un fichier de données valide.")
+    df = st.session_state.data
+    if df.empty:
+        st.error("Aucune donnée disponible. Veuillez importer un fichier de données valide.")
+        if st.button("Retour à l'accueil"):
+            st.session_state.page = 'home'
         return
     
-    # Filtres
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.write("## Filtres")
     
     col1, col2 = st.columns(2)
-    
     with col1:
-        # Filtre par pays
-        countries = sorted(merged_df['Country'].unique())
-        selected_countries = st.multiselect(
-            "Sélectionner des pays",
-            options=countries,
-            default=countries
-        )
+        countries = sorted(df['Country'].unique())
+        selected_countries = st.multiselect("Sélectionner des pays", options=countries, default=countries)
     
     with col2:
-        # Filtre par mois
-        months = sorted(merged_df['Month'].unique(), key=lambda x: merged_df[merged_df['Month']==x]['MonthOrder'].iloc[0])
-        selected_months = st.multiselect(
-            "Sélectionner des mois",
-            options=months,
-            default=months
-        )
+        months = sorted(df['Month'].unique(), key=lambda x: df[df['Month']==x]['MonthOrder'].iloc[0])
+        selected_months = st.multiselect("Sélectionner des mois", options=months, default=months)
     
-    # Filtrer les données
-    filtered_df = merged_df[
-        (merged_df['Country'].isin(selected_countries)) &
-        (merged_df['Month'].isin(selected_months))
-    ]
+    if not selected_countries or not selected_months:
+        st.warning("Veuillez sélectionner au moins un pays et un mois.")
+        st.markdown('</div>', unsafe_allow_html=True)
+        if st.button("Retour à l'accueil"):
+            st.session_state.page = 'home'
+        return
+    
+    filtered_df = df[df['Country'].isin(selected_countries) & df['Month'].isin(selected_months)]
+    if filtered_df.empty:
+        st.warning("Aucune donnée correspond aux filtres sélectionnés.")
+        st.markdown('</div>', unsafe_allow_html=True)
+        if st.button("Retour à l'accueil"):
+            st.session_state.page = 'home'
+        return
+    
     st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Rapport interactif
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.write("## Rapport des ventes par client et produit")
     
-    # Grouper les données par client et produit
     customer_product_sales = filtered_df.groupby(['CustomerID', 'ProductName'])['QuantiteVendue'].sum().reset_index()
-    
-    # Ajouter un filtre pour les clients
     customer_ids = sorted(customer_product_sales['CustomerID'].unique())
     selected_customers = st.multiselect(
         "Sélectionner des clients",
         options=customer_ids,
-        default=customer_ids[:5] if len(customer_ids) > 5 else customer_ids
+        default=customer_ids[:5] if len(customer_ids) >= 5 else customer_ids
     )
     
-    # Filtrer les données du tableau
     filtered_table_data = customer_product_sales[customer_product_sales['CustomerID'].isin(selected_customers)]
-    
-    # Créer un tableau interactif
     if not filtered_table_data.empty:
         st.dataframe(filtered_table_data, use_container_width=True)
         
         fig_table = go.Figure(data=[go.Table(
-            header=dict(
-                values=['ID Client', 'Nom du Produit', 'Quantité Achetée'],
-                fill_color='royalblue',
-                align='left',
-                font=dict(color='white', size=12)
-            ),
-            cells=dict(
-                values=[
-                    filtered_table_data['CustomerID'],
-                    filtered_table_data['ProductName'],
-                    filtered_table_data['QuantiteVendue']
-                ],
-                fill_color='lavender',
-                align='left'
-            )
+            header=dict(values=['ID Client', 'Nom du Produit', 'Quantité Achetée'],
+                       fill_color='royalblue', align='left', font=dict(color='white', size=12)),
+            cells=dict(values=[filtered_table_data['CustomerID'], filtered_table_data['ProductName'],
+                             filtered_table_data['QuantiteVendue']],
+                      fill_color='lavender', align='left')
         )])
-        
         st.plotly_chart(fig_table, use_container_width=True)
+        
+        if st.button("Exporter en CSV"):
+            csv = filtered_table_data.to_csv(index=False)
+            b64 = base64.b64encode(csv.encode()).decode()
+            href = f'<a href="data:file/csv;base64,{b64}" download="rapport_ventes.csv">Télécharger le fichier CSV</a>'
+            st.markdown(href, unsafe_allow_html=True)
     else:
-        st.warning("Aucune donnée disponible pour les filtres sélectionnés")
+        st.warning("Aucune donnée disponible pour les clients sélectionnés.")
     
-    # Export button
-    if st.button("Exporter en CSV"):
-        csv = filtered_table_data.to_csv(index=False)
-        b64 = base64.b64encode(csv.encode()).decode()
-        href = f'<a href="data:file/csv;base64,{b64}" download="rapport_ventes.csv">Télécharger le fichier CSV</a>'
-        st.markdown(href, unsafe_allow_html=True)
-    
-    # Bouton de retour
     if st.button("Retour à l'accueil"):
         st.session_state.page = 'home'
     st.markdown('</div>', unsafe_allow_html=True)
@@ -568,204 +490,129 @@ def page_interactive_report():
 def page_dashboard():
     st.markdown('<div class="main-header"><h1>Dashboard</h1></div>', unsafe_allow_html=True)
     
-    # Chargement des données
-    merged_df = load_data()
+    if 'data' not in st.session_state or st.session_state.data is None:
+        st.session_state.data = load_data()
     
-    if merged_df.empty:
-        st.warning("Aucune donnée disponible. Veuillez charger un fichier de données valide.")
+    df = st.session_state.data
+    if df.empty:
+        st.error("Aucune donnée disponible. Veuillez importer un fichier de données valide.")
+        if st.button("Retour à l'accueil"):
+            st.session_state.page = 'home'
         return
     
-    # Sidebar avec filtre
     st.sidebar.header("Filtres")
+    countries = sorted(df['Country'].unique())
+    selected_countries = st.sidebar.multiselect("Sélectionner des pays", options=countries, default=countries)
+    months = sorted(df['Month'].unique(), key=lambda x: df[df['Month']==x]['MonthOrder'].iloc[0])
+    selected_months = st.sidebar.multiselect("Sélectionner des mois", options=months, default=months)
     
-    # Filtre par pays
-    countries = sorted(merged_df['Country'].unique())
-    selected_countries = st.sidebar.multiselect(
-        "Sélectionner des pays",
-        options=countries,
-        default=countries
-    )
+    if not selected_countries or not selected_months:
+        st.warning("Veuillez sélectionner au moins un pays et un mois.")
+        if st.button("Retour à l'accueil"):
+            st.session_state.page = 'home'
+        return
     
-    # Filtre par mois
-    months = sorted(merged_df['Month'].unique(), key=lambda x: merged_df[merged_df['Month']==x]['MonthOrder'].iloc[0])
-    selected_months = st.sidebar.multiselect(
-        "Sélectionner des mois",
-        options=months,
-        default=months
-    )
+    filtered_df = df[df['Country'].isin(selected_countries) & df['Month'].isin(selected_months)]
+    if filtered_df.empty:
+        st.warning("Aucune donnée correspond aux filtres sélectionnés.")
+        if st.button("Retour à l'accueil"):
+            st.session_state.page = 'home'
+        return
     
-    # Filtrer les données
-    filtered_df = merged_df[
-        (merged_df['Country'].isin(selected_countries)) &
-        (merged_df['Month'].isin(selected_months))
-    ]
+    sales_by_month_country = filtered_df.groupby(['Country', 'Month', 'MonthOrder'])['MontantVentes'].sum().reset_index().sort_values('MonthOrder')
     
-    # Créer des données agrégées pour les graphiques
-    sales_by_month_country = filtered_df.groupby(['Country', 'Month', 'MonthOrder'])['MontantVentes'].sum().reset_index()
-    sales_by_month_country = sales_by_month_country.sort_values('MonthOrder')
-    
-    # Statistiques récapitulatives
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Statistiques Globales")
-    
-    # Créer deux colonnes pour les métriques
     metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
-    
-    # Calculer les métriques
     total_sales = filtered_df['MontantVentes'].sum()
     total_quantity = filtered_df['QuantiteVendue'].sum()
     avg_sale_per_transaction = total_sales / len(filtered_df) if len(filtered_df) > 0 else 0
     num_customers = filtered_df['CustomerID'].nunique()
     
-    # Afficher les métriques
     metric_col1.metric("Ventes Totales", f"{total_sales:,.2f} €")
     metric_col2.metric("Quantité Totale Vendue", f"{total_quantity:,}")
     metric_col3.metric("Moyenne par Transaction", f"{avg_sale_per_transaction:.2f} €")
     metric_col4.metric("Nombre de Clients", f"{num_customers}")
     st.markdown('</div>', unsafe_allow_html=True)
-
-    # Onglets pour les différents graphiques
+    
     tab1, tab2, tab3, tab4 = st.tabs(["Ventes par Pays", "Ventes Mensuelles", "Ventes par Produit", "Répartition par Pays"])
     
     with tab1:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.header("Ventes totales par pays et par mois")
-        
-        fig1 = px.bar(
-            sales_by_month_country, 
-            x='Month', 
-            y='MontantVentes', 
-            color='Country',
-            barmode='group',
-            labels={'MontantVentes': 'Ventes Totales', 'Month': 'Mois', 'Country': 'Pays'},
-            category_orders={"Month": months}
-        )
-        
-        fig1.update_layout(
-            xaxis_title="Mois", 
-            yaxis_title="Ventes Totales",
-            legend_title="Pays",
-            height=600
-        )
-        
+        fig1 = px.bar(sales_by_month_country, x='Month', y='MontantVentes', color='Country', barmode='group',
+                     labels={'MontantVentes': 'Ventes Totales', 'Month': 'Mois', 'Country': 'Pays'},
+                     category_orders={"Month": months})
+        fig1.update_layout(xaxis_title="Mois", yaxis_title="Ventes Totales", legend_title="Pays", height=600)
         st.plotly_chart(fig1, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
     
     with tab2:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.header("Ventes totales par mois pour chaque pays")
-        
         fig2 = go.Figure()
-        
         for country in sales_by_month_country['Country'].unique():
             country_data = sales_by_month_country[sales_by_month_country['Country'] == country]
-            fig2.add_trace(go.Bar(
-                x=country_data['Month'],
-                y=country_data['MontantVentes'],
-                name=country
-            ))
-        
-        fig2.update_layout(
-            barmode='stack',
-            xaxis_title='Mois',
-            yaxis_title='Ventes Totales',
-            xaxis={'categoryorder':'array', 'categoryarray': months},
-            height=600
-        )
-        
+            fig2.add_trace(go.Bar(x=country_data['Month'], y=country_data['MontantVentes'], name=country))
+        fig2.update_layout(barmode='stack', xaxis_title='Mois', yaxis_title='Ventes Totales',
+                          xaxis={'categoryorder':'array', 'categoryarray': months}, height=600)
         st.plotly_chart(fig2, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
     
     with tab3:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.header("Ventes totales par produit")
-        
-        # Top produits par ventes
         product_sales = filtered_df.groupby('ProductName')['MontantVentes'].sum().sort_values(ascending=False).reset_index()
         top_products = product_sales.head(10)
-        
-        fig3 = px.bar(
-            top_products,
-            x='ProductName',
-            y='MontantVentes',
-            labels={'MontantVentes': 'Ventes Totales', 'ProductName': 'Produit'},
-            color='MontantVentes',
-            color_continuous_scale='Viridis'
-        )
-        
-        fig3.update_layout(
-            xaxis_title='Produit',
-            yaxis_title='Ventes Totales',
-            height=600
-        )
-        
+        fig3 = px.bar(top_products, x='ProductName', y='MontantVentes',
+                     labels={'MontantVentes': 'Ventes Totales', 'ProductName': 'Produit'},
+                     color='MontantVentes', color_continuous_scale='Viridis')
+        fig3.update_layout(xaxis_title='Produit', yaxis_title='Ventes Totales', height=600)
         st.plotly_chart(fig3, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
     
     with tab4:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.header("Répartition des ventes mensuelles par pays")
-        
-        # Calculer les totaux par pays pour les pourcentages
         country_totals = sales_by_month_country.groupby('Country')['MontantVentes'].sum().to_dict()
-        
-        # Créer un conteneur pour les diagrammes en camembert
         col1, col2 = st.columns(2)
-        
         countries_list = sorted(sales_by_month_country['Country'].unique())
         half = len(countries_list) // 2 + len(countries_list) % 2
         
         for i, country in enumerate(countries_list):
             current_col = col1 if i < half else col2
-            
             country_data = sales_by_month_country[sales_by_month_country['Country'] == country]
-            
-            # Calculer les pourcentages
             country_data['Percentage'] = country_data['MontantVentes'] / country_totals[country] * 100
-            
-            # Ajouter des étiquettes avec les pourcentages
             country_data['Labels'] = country_data['Month'] + ' (' + country_data['Percentage'].round(1).astype(str) + '%)'
-            
-            fig = go.Figure(data=[go.Pie(
-                labels=country_data['Labels'],
-                values=country_data['MontantVentes'],
-                hole=0.3,
-                sort=False
-            )])
-            
-            fig.update_layout(
-                title=f"Ventes pour {country}",
-                height=400
-            )
-            
+            fig = go.Figure(data=[go.Pie(labels=country_data['Labels'], values=country_data['MontantVentes'], hole=0.3, sort=False)])
+            fig.update_layout(title=f"Ventes pour {country}", height=400)
             current_col.plotly_chart(fig, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
     
-    # Bouton de retour
     if st.button("Retour à l'accueil"):
         st.session_state.page = 'home'
 
 # Navigation
+page_map = {
+    'home': page_home,
+    'browse_files': page_browse_files,
+    'create_new': page_create_new,
+    'manage_data': page_manage_data,
+    'documentation': page_documentation,
+    'analysis_report': page_analysis_report,
+    'interactive_report': page_interactive_report,
+    'dashboard': page_dashboard
+}
+
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
 
-# Afficher la page actuelle
-if st.session_state.page == 'home':
+if st.session_state.page in page_map:
+    page_map[st.session_state.page]()
+else:
+    st.error(f"Page '{st.session_state.page}' non trouvée. Retour à l'accueil.")
+    st.session_state.page = 'home'
     page_home()
-elif st.session_state.page == 'browse_files':
-    page_browse_files()
-elif st.session_state.page == 'create_new':
-    page_create_new()
-elif st.session_state.page == 'manage_data':
-    page_manage_data()
-elif st.session_state.page == 'documentation':
-    page_documentation()
-elif st.session_state.page == 'analysis_report':
-    page_analysis_report()
-elif st.session_state.page == 'interactive_report':
-    page_interactive_report()
-elif st.session_state.page == 'dashboard':
-    page_dashboard()
 
 # Ajouter un pied de page
 st.markdown("""
