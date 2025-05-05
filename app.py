@@ -249,6 +249,21 @@ def page_home():
         st.warning("Aucune donnée chargée. Veuillez uploader un fichier dans 'Browse Files'.")
     
     st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown("""
+    ## Comment utiliser le système
+    
+    Suivez ces étapes simples pour commencer :
+    
+    1. **Importez vos données** : Rendez-vous dans "Browse Files" pour uploader un fichier CSV ou Excel contenant vos données de ventes.
+    2. **Vérifiez les données** : Assurez-vous que votre fichier inclut les colonnes requises (Country, Month, CustomerID, ProductName, QuantiteVendue, MontantVentes).
+    3. **Explorez les analyses** : Utilisez les boutons "Analysis Report", "Interactive Report" ou "Dashboard" pour visualiser et analyser vos données.
+    4. **Consultez la documentation** : Pour plus d'informations, visitez la page "Documentation".
+    
+    Commencez dès maintenant en cliquant sur "Browse Files" pour importer vos données !
+    """)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def page_browse_files():
     st.markdown('<div class="main-header"><h1>Browse Files</h1></div>', unsafe_allow_html=True)
@@ -574,7 +589,6 @@ def page_dashboard():
             if country_data.empty or country not in country_totals:
                 continue
             country_data['Percentage'] = country_data['MontantVentes'] / country_totals[country] * 100
-            # Use apply to create Labels column safely
             country_data['Labels'] = country_data.apply(
                 lambda row: f"{row['Month']} ({row['Percentage']:.1f}%)", axis=1
             )
