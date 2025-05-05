@@ -231,12 +231,34 @@ def page_home():
     
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown("""
-    ## À propos du Système d'Analyse des Ventes
+   
+
+
+    ## Comment utiliser le système
+    
+    Suivez ces étapes simples pour commencer :
+    
+    1. **Importez vos données** : Rendez-vous dans "Browse Files" pour uploader un fichier CSV ou Excel contenant vos données de ventes.
+    2. **Vérifiez les données** : Assurez-vous que votre fichier inclut les colonnes requises (Country, Month, CustomerID, ProductName, QuantiteVendue, MontantVentes).
+    3. **Explorez les analyses** : Utilisez les boutons "Analysis Report", "Interactive Report" ou "Dashboard" pour visualiser et analyser vos données.
+    4. **Consultez la documentation** : Pour plus d'informations, visitez la page "Documentation".
+    
+    Commencez dès maintenant en cliquant sur "Browse Files" pour importer vos données !
+    """)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+
+
+
+    
+  
+    st.markdown("""
+     ## À propos du Système d'Analyse des Ventes
     
     Ce système vous permet d'analyser les données de ventes de votre entreprise de manière intuitive et interactive.
     Utilisez les boutons ci-dessus pour naviguer entre les différentes fonctionnalités.
-    
-    ### Principales fonctionnalités:
+  ### Principales fonctionnalités:
     
     * **Analysis Report**: Rapports détaillés sur les ventes par pays et par mois
     * **Interactive Report**: Rapport interactif permettant de filtrer et d'explorer les données
@@ -251,19 +273,8 @@ def page_home():
     st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("""
-    ## Comment utiliser le système
-    
-    Suivez ces étapes simples pour commencer :
-    
-    1. **Importez vos données** : Rendez-vous dans "Browse Files" pour uploader un fichier CSV ou Excel contenant vos données de ventes.
-    2. **Vérifiez les données** : Assurez-vous que votre fichier inclut les colonnes requises (Country, Month, CustomerID, ProductName, QuantiteVendue, MontantVentes).
-    3. **Explorez les analyses** : Utilisez les boutons "Analysis Report", "Interactive Report" ou "Dashboard" pour visualiser et analyser vos données.
-    4. **Consultez la documentation** : Pour plus d'informations, visitez la page "Documentation".
-    
-    Commencez dès maintenant en cliquant sur "Browse Files" pour importer vos données !
-    """)
-    st.markdown('</div>', unsafe_allow_html=True)
+
+        
 
 def page_browse_files():
     st.markdown('<div class="main-header"><h1>Browse Files</h1></div>', unsafe_allow_html=True)
